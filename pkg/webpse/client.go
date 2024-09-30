@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 var (
@@ -17,8 +18,14 @@ type Client struct {
 
 func New(apiKey string) *Client {
 	return &Client{
-		httpClient: &http.Client{},
-		apiKey:     apiKey,
+		httpClient: &http.Client{
+			Timeout: 5 * time.Second,
+			Transport: &http.Transport{
+
+				DisableKeepAlives: true,
+			},
+		},
+		apiKey: apiKey,
 	}
 }
 

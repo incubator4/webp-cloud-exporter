@@ -43,7 +43,7 @@ func New(client *webpse.Client) Server {
 
 	r.Handle("/", landingPage)
 	r.HandleFunc("/healthz", Healthz).Methods(http.MethodGet)
-	r.Handle(metricsPath, Metrics(client)).Methods(http.MethodGet)
+	r.HandleFunc(metricsPath, Metrics(client)).Methods(http.MethodGet)
 
 	return Server{mux: r}
 }

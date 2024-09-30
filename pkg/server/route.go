@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	userLabel    = []string{"uuid"}
 	metricPrefix = "webp_cloud"
 
 	handler = promhttp.Handler()
@@ -45,29 +44,31 @@ func Healthz(w http.ResponseWriter, _ *http.Request) {
 	fmt.Fprint(w, "OK")
 }
 
-func Metrics(client *webpse.Client) http.Handler {
-	if resp, err := client.GetUserInfo(); err == nil {
-		gaugeVecUserQuota.
-			WithLabelValues(resp.Data.UUID, resp.Data.Name, resp.Data.Email, "daily").
-			Set(float64(resp.Data.DailyQuota))
-		gaugeVecUserQuota.
-			WithLabelValues(resp.Data.UUID, resp.Data.Name, resp.Data.Email, "daily_limit").
-			Set(float64(resp.Data.DailyQuotaLimit))
-		gaugeVecUserQuota.
-			WithLabelValues(resp.Data.UUID, resp.Data.Name, resp.Data.Email, "permanent").
-			Set(float64(resp.Data.PermanentQuota))
+func Metrics(client *webpse.Client) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if resp, err := client.GetUserInfo(); err == nil {
+			gaugeVecUserQuota.
+				WithLabelValues(resp.Data.UUID, resp.Data.Name, resp.Data.Email, "daily").
+				Set(float64(resp.Data.DailyQuota))
+			gaugeVecUserQuota.
+				WithLabelValues(resp.Data.UUID, resp.Data.Name, resp.Data.Email, "daily_limit").
+				Set(float64(resp.Data.DailyQuotaLimit))
+			gaugeVecUserQuota.
+				WithLabelValues(resp.Data.UUID, resp.Data.Name, resp.Data.Email, "permanent").
+				Set(float64(resp.Data.PermanentQuota))
 
+		}
+
+		if resp, err := client.GetUserStats(); err == nil {
+			gaugeVecUserSendByteTotal.WithLabelValues(resp.Data.UUID).Set(float64(resp.Data.TotalBytesSent))
+		}
+
+		//if resp, err := client.GetProxiesStats(); err == nil {
+		//	for _, proxy := range resp.Data {
+		//		GaugeVecProxy.WithLabelValues(proxy.UUID).Set(float64(proxy.CacheSize))
+		//	}
+		//}
+
+		handler.ServeHTTP(w, r)
 	}
-
-	if resp, err := client.GetUserStats(); err == nil {
-		gaugeVecUserSendByteTotal.WithLabelValues(resp.Data.UUID).Set(float64(resp.Data.TotalBytesSent))
-	}
-
-	//if resp, err := client.GetProxiesStats(); err == nil {
-	//	for _, proxy := range resp.Data {
-	//		GaugeVecProxy.WithLabelValues(proxy.UUID).Set(float64(proxy.CacheSize))
-	//	}
-	//}
-
-	return handler
 }
